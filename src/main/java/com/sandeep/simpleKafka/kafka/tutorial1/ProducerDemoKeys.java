@@ -1,18 +1,21 @@
 package com.sandeep.simpleKafka.kafka.tutorial1;
 
 import com.sandeep.simpleKafka.kafka.constants.KafkaProducerConstants;
-import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
 
-public class ProducerDemoWithCallback {
+public class ProducerDemoKeys {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ProducerDemoWithCallback.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(ProducerDemoKeys.class.getName());
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
 
         // create producer properties
         Properties properties = new Properties();
@@ -24,8 +27,28 @@ public class ProducerDemoWithCallback {
         KafkaProducer<String, String> producer = new KafkaProducer<>(properties);
 
         for (int i = 0; i < 10; i++) {
+
+            String topic = KafkaProducerConstants.KAFKA_TOPIC;
+            String value = KafkaProducerConstants.TEXT_MESSAGE + i;
+            String key = KafkaProducerConstants.ID + i;
+
             // create a producer record
-            ProducerRecord<String, String> record = new ProducerRecord<>(KafkaProducerConstants.KAFKA_TOPIC, KafkaProducerConstants.TEXT_MESSAGE + "_" + i);
+            ProducerRecord<String, String> record =
+                    new ProducerRecord<>(topic, key, value);
+
+            LOGGER.info("Key: {}", key);
+            // id       partition
+            // ==================
+            // id_0     1
+            // id_1     0
+            // id_2     2
+            // id_3     0
+            // id_4     2
+            // id_5     2
+            // id_6     0
+            // id_7     2
+            // id_8     1
+            // id_9     2
 
             // send data - asynchronous
             producer.send(record, (recordMetadata, e) -> {
@@ -38,7 +61,7 @@ public class ProducerDemoWithCallback {
                     LOGGER.error("Exception occurred: ", e);
                 }
 
-            });
+            }).get(); // block the .send() to make it synchronous. But don't do this in production
         }
 
         // flush producer
